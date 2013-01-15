@@ -14,6 +14,7 @@ import urllib
 from time import sleep
 import random
 import codecs
+import csv
 
 #taken from http://www.last.fm/community/users/active
 seed_users = ['RJ','V-34', 'Hello_Suckers', 'Anarchnophobia', 'Shaynstein', 'MaryWentz', 'MrMetroid', 'TamuraKafka', 'sweettvirginia', 'jobarruiz', 'MargaritaHell', 'LonelyEstate', 'stripedcat', 'Hammerfall314', 'spoil3r', 'joaotsantos', 'Liberation-FM', 'nightclusing', 'DaysoftheGun', 'forestasunder', 'Foresthrone', 'NorgeAllStar', 'HenkeRock', 'MerryMaenad', 'Harry_01', 'Steban14', 'Cysquatch193', 'Vallychen', 'Lisa_Westfall', 'richardestrada7', 'vividserenity']

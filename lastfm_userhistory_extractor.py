@@ -9,6 +9,8 @@ import sys
 from xml.dom.minidom import parse
 import xml.sax
 import urllib
+from os.path import basename
+import random
 from time import sleep
 
 class SongHistoryXMLHandler(xml.sax.ContentHandler):
@@ -20,6 +22,7 @@ class SongHistoryXMLHandler(xml.sax.ContentHandler):
     self.inTrack = False
     self.inArtist = False
     self.ignoreTrack = False
+    self.totalPages = 1
 
   def startElement(self, name, attrs):
     if name == 'track':
@@ -80,8 +83,8 @@ recent_tracks_xmlurl = 'http://ws.audioscrobbler.com/2.0/?method=user.getrecentt
 
 MAX_RETRIES_URL_OPEN = 5
 
-outname = "uid-timestamp-mbid-trackname-artistmbid-artistname%s.txt" % sys.argv[1]
-output = codecs.open(outname, "aw", "utf-8")
+outname = "uid-timestamp-mbid-artistmbid-trackname-artistname%s.txt" % basename(sys.argv[1])
+output = codecs.open(outname, "w", "utf-8")
 
 def download_user_history(username):
   currpage = 0
@@ -93,37 +96,51 @@ def download_user_history(username):
   while currpage <= numPages:
     print 'fetching page: ', currpage, ' of ', numPages
     xmlpath = recent_tracks_xmlurl + 'page=' + str(currpage) + '&user=' + str(username)
-    try:
-      xmldata = urllib.urlopen(xmlpath)
-      userhistory = SongHistoryXMLHandler()
-      xml.sax.parse(xmldata, userhistory)
-      xmldata.close()
+    
+    tries = 0
+    success = False
+    
+    while tries < MAX_RETRIES_URL_OPEN and not success:
+      try:
+        if tries > 0:
+          print "retrying after failed attempt"
+        xmldata = urllib.urlopen(xmlpath)
+        userhistory = SongHistoryXMLHandler()
+        xml.sax.parse(xmldata, userhistory)
+        xmldata.close()
       
-      for (name, mbid, date, artistname, artistmbid) in userhistory.tracks:
-        output.write(username)
-        output.write('\t')
-        output.write(date)
-        output.write('\t')
-        output.write(mbid)
-        output.write('\t')
-        output.write(name)
-        output.write('\t')
-        output.write(artistmbid)
-        output.write('\t')
-        output.write(artistname)
-        output.write('\n')
-      
-      numPages = userhistory.totalPages
+        numPages = userhistory.totalPages
   
-    except Exception as e:
-      print "exception", e
+        success = True
+  
+      except Exception, e:
+        tries += 1
+        print "exception while fetching user history", e
+  
+      if success:
+        for (name, mbid, date, artistname, artistmbid) in userhistory.tracks:
+          output.write(username)
+          output.write('\t')
+          output.write(date)
+          output.write('\t')
+          output.write(mbid)
+          output.write('\t')
+          output.write(artistmbid)
+          output.write('\t')
+          output.write(name)
+          output.write('\t')
+          output.write(artistname)
+          output.write('\n')
   
     currpage = currpage + 1
 
 
 def main(userfile):
   num_users_visited = 0
-  for line in open(userfile, 'r'):
+  userfile = open(userfile, 'r')
+  userlines = userfile.readlines()
+  random.shuffle(userlines)
+  for line in userlines:
     (user,age,gender,country) = line.split(',')
     
     download_user_history(user)
@@ -139,7 +156,7 @@ if __name__ == "__main__":
     main(sys.argv[1])
     save_data()
   #except KeyboardInterrupt:
-  except Exception as e:
+  except Exception, e:
     print e
     print "Exception caught, saving data and quitting..."
     save_data()
